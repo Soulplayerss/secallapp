@@ -15,8 +15,8 @@
         </div>
         <div class="nav">
             <Menu mode="horizontal" active-name="1">
-                <MenuItem name="1"> <router-link to="/">商品</router-link></MenuItem>
-                <MenuItem name="2"> <router-link to="/merchants">商家</router-link></MenuItem>
+                <MenuItem name="1"><router-link to="/">商品</router-link></MenuItem>
+                <MenuItem name="2"><router-link to="/merchants">商家</router-link></MenuItem>
                 <MenuItem name="4"><router-link to="/evaluation">评价</router-link></MenuItem>
             </Menu>
         </div>
@@ -25,10 +25,33 @@
 
         <!-- 站位盒子 -->
         <div class="box"></div>
+
+        <!-- 购物车板子 -->
+        <transition name="slide-fade">
+            <div class="shopcar-barde" v-show="shopCarShow">
+                <ul class="content">
+                    <div class="info" v-for="item in shopCarGoods" :key="item.id">
+                        <div class="info-content">
+                            <img :src="item.image" alt="">
+                            <div class="goodsInfo">
+                                <h5>{{item.name}}</h5>
+                                <p  v-if="item.description!=''">{{item.description}}</p>
+                                <p>月售{{item.sellCount}}份&emsp;好评率{{item.rating}}%</p>
+                                <p class="price">￥{{item.price*item.num}}&emsp;</p>
+                                <div>
+                                    <button @click="clickDecNum(item.name)">-</button>
+                                    &emsp;{{item.num}}&emsp;<button @click="clickAddNum(item.name)">+</button>                                
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </div>
+        </transition>
         <!-- 购物车 -->
         <div class="shopcar-div">
-            <div class="icon"><Icon type="md-cart" /></div>
-            <div class="total-price">￥<span>0</span></div>
+            <div class="icon" @click=" shopCarShow = !shopCarShow"><Icon type="md-cart" /></div>
+            <div class="total-price">￥<span>{{totalPrice}}</span></div>
             <div class="distribution-price">另需配送费￥<span>{{data.deliveryPrice}}</span>元</div>
             <div class="mini-price">￥<span>{{data.minPrice}}</span>起送</div>
         </div>
@@ -36,13 +59,7 @@
         <!-- 商家公告 -->
         <div class="announcement" v-show="this.floag">
             <h3>{{data.name}}</h3>
-            <p>
-                <img src="../assets/imgs/star24_on@2x.png" alt="">
-                <img src="../assets/imgs/star24_on@2x.png" alt="">
-                <img src="../assets/imgs/star24_on@2x.png" alt="">
-                <img src="../assets/imgs/star24_on@2x.png" alt="">
-                <img src="../assets/imgs/star24_off@2x.png" alt="">
-            </p>
+            <p><Rate allow-half v-model="data.serviceScore" /></p>
             <Divider>优惠信息</Divider>
             <p v-for="(v,i) in data.supports" :key="i"><img src="../assets/imgs/decrease_1@2x.png" alt="" width="14px" height="14px">{{v.description}}</p>
             <Divider>商家公告</Divider>
@@ -54,35 +71,63 @@
 
 <script>
 
-import { merchantsInfo } from '../api/apis.js';
+import { merchantsInfo,goodsInfo } from '../api/apis.js';
+import BScroll from 'better-scroll'
     export default {
         data(){
             return{
                 data:{},
-                floag:false
+                floag:false,
+                shopCarShow:false,
             }
         },
         created(){
             //发送请求商家信息
             merchantsInfo().then(res=>{
-                // console.log(res.data)
                 this.data=res.data.data;
-            })
+            });
+             //发送请求商品信息
+            goodsInfo().then(res=>{
+                this.$store.commit('initGoodsList',res.data.data);
+            });
+        },
+        mounted(){
+            new BScroll(document.querySelector(".shopcar-barde"),{click:true})
+        },
+        computed:{
+            //拿到num发生改变的数据
+            shopCarGoods(){
+                return this.$store.getters.getGoods;
+            },
+            //计算总价
+            totalPrice(){
+                var totalprice=0;             
+                for(let obj of this.$store.getters.getGoods){
+                    totalprice+=obj.price*obj.num
+                }
+                return totalprice
+            }
         },
         methods:{
-            active(){
-                var activeList=document.getElementsByTagName('li');
-                for(var i=0; i < activeList.length;i++){
-                    activeList[i].style.color="blue"
-                }
-            },
+            //展示公告页面
             showdiv(){
                 this.floag=true;
             },
+            //关闭公告页面
             hinddiv(){
-                console.log(1111)
+                // console.log(1111)
                 this.floag=false;
             },
+            //减少数量
+            clickDecNum(name){
+                console.log(name)
+                this.$store.commit('decNum',name)
+            },
+            //数量增加
+            clickAddNum(name){
+                this.$store.commit('addNum',name)
+            },
+            
         }
     }
 </script>
@@ -231,17 +276,15 @@ import { merchantsInfo } from '../api/apis.js';
                 justify-content: flex-start;
                 margin: 10px 0;
                 line-height: 16px;
-                img{
-                    width: 16px;
-                    height: 16px;
-                    margin-right: 10px;
-                }
             }
             p:nth-child(2){
-                width: 50%;
-                margin: 0 auto;
+                margin: 10 auto;
                 display: flex;
-                justify-content: space-around;
+                justify-content: center;
+                
+            }
+            p:nth-child(8){
+                line-height: 26px;
                 
             }
             p:last-child{
@@ -252,6 +295,75 @@ import { merchantsInfo } from '../api/apis.js';
             }
         }
         .box{height: 50px;}
+        .shopcar-barde{
+            max-height: 226px;
+            overflow: auto;
+            width: 100%;
+            position: fixed;
+            bottom: 50px;
+            .info{
+                padding: 20px 20px 0 20px;
+                font-size: 12px;
+                background-color: #f2f2f2;
+                .info-content{
+                    padding-bottom: 20px;
+                    border-bottom: solid 1px #ccc;
+                    display: flex;
+                    justify-content: flex-start;
+                    img{
+                        width: 60px;
+                        height: 60px;
+                        margin-right: 10px;
+                    }
+                    .goodsInfo{
+                        flex: 1;
+                        position: relative;
+                        p{
+                            width: 100%;
+                            height: 18px;
+                            color: #93989c;
+                            overflow: hidden;
+                        }
+                        .price{
+                            color: #ff6600;
+                            font-size: 14px;
+                        }
+                        div{
+                            width: 60px;
+                            height: 20px;
+                            position: absolute;
+                            right: 0px;
+                            bottom: -5px;
+                            button{
+                                width: 20px;
+                                height: 20px;
+                                border-radius: 50%;
+                                text-align: center;
+                                line-height: 20px;
+                                font-size: 16px;
+                                color: white;
+                                border: none;
+                                padding: 0;
+                                background-color: #00a0dc;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        /* 可以设置不同的进入和离开动画 */
+        /* 设置持续时间和动画函数 */
+        .slide-fade-enter-active {
+        transition: all .8s ease;
+        }
+        .slide-fade-leave-active {
+        transition: all .8s ease;
+        }
+        .slide-fade-enter, .slide-fade-leave-to
+        /* .slide-fade-leave-active for below version 2.1.8 */ {
+        transform: translateY(200px);
+        opacity: 0;
+        }
     }
     
 </style>

@@ -2,7 +2,7 @@
     <div class="goodsList">
         <div class="goodsList-left">
             <ul class="content">
-                <div @click="clickLeftList(i)" :class="{selected:curSelected==i}" v-for="(v,i) in data" :key="i">
+                <div @click="clickLeftList(i)" :class="{selected:curSelected==i}" v-for="(v,i) in goodsList" :key="i">
                     <img v-show="v.type==1" src="../assets/imgs/decrease_1@2x.png" alt="" width="14px">
                     <img v-show="v.type==2" src="../assets/imgs/discount_1@2x.png" alt="" width="14px">                
                     {{v.name}}
@@ -11,8 +11,8 @@
         </div>
         <div class="goodsList-right">
            <ul class="content">
-                <div v-for="(v,i) in data" :key="i">
-                    <div class="title" :id="i">{{v.name}}</div>
+                <div :id="i" v-for="(v,i) in goodsList" :key="i">
+                    <div class="title" >{{v.name}}</div>
                     <div class="info" v-for="(x,z) in v.foods" :key="z">
                         <div class="info-content">
                             <img :src="x.image" alt="">
@@ -20,10 +20,10 @@
                                 <h5>{{x.name}}</h5>
                                 <p  v-if="x.description!=''">{{x.description}}</p>
                                 <p>月售{{x.sellCount}}份&emsp;好评率{{x.rating}}%</p>
-                                <p>￥{{x.price}}&emsp;<span v-show="x.oldPrice!=''">￥{{x.oldPrice}}</span></p>
+                                <p class="price">￥{{x.price}}&emsp;<span v-show="x.oldPrice!=''">￥{{x.oldPrice}}</span></p>
                                 <div>
-                                    <button v-show="x.num==0 ? 'disabled' : ''" @click="Reduction(z)">-</button>
-                                    &emsp;{{x.num}}&emsp;<button @click="Reduction(z)">+</button>                                
+                                    <button @click="clickDecNum(x.name)">-</button>
+                                    &emsp;{{x.num}}&emsp;<button @click="clickAddNum(x.name)">+</button>                            
                                 </div>
                             </div>
                         </div>
@@ -41,31 +41,64 @@ import BScroll from 'better-scroll'
     export default {
         data(){
             return{
-                data:[],
                 curSelected:0
             }
         },
         created(){
-            //发送请求商家信息
+            //发送请求商品信息
             goodsInfo().then(res=>{
-                // console.log(res.data)
-                this.data=res.data.data;
-                console.log(this.data)
+                this.$store.commit('initGoodsList',res.data.data)
             })
-        },
+        },    
         methods:{
-            Reduction(){
-                console.log(111)
-            },
             clickLeftList(index){
-                // console.log(111)
                 this.curSelected=index;
                 this.rightDiv.scrollToElement(document.getElementById(index),600)
-            }
+            },
+            //减少数量
+            clickDecNum(name){
+                console.log(name)
+                this.$store.commit('decNum',name)
+            },
+            //数量增加
+            clickAddNum(name){
+                this.$store.commit('addNum',name)
+            },
         },
         mounted(){
             new BScroll(document.querySelector(".goodsList-left"),{click:true})
-            this.rightDiv=new BScroll(document.querySelector(".goodsList-right"))
+            this.rightDiv = new BScroll(document.querySelector(".goodsList-right"),{probeType:3})
+            this.rightDiv.on('scroll',({y})=>{
+                var _y=Math.abs(y);
+                //判断在哪个区间，显示左面对应的盒子
+                for(let curDiv of this.getDivHight){
+                    if(_y>=curDiv.min && _y<curDiv.max){
+                        this.curSelected=curDiv.index;
+                    }
+                }
+            })
+
+        },
+        computed:{
+            //循环拿到每一个盒子的高度
+            getDivHight(){
+                var arr=[]
+                var total=0;
+                for(let i=0;i<this.goodsList.length;i++){
+                    //获取每一个的盒子高度
+                    var curDivHight=document.getElementById(i).offsetHeight
+                    //向数组里面添加对象
+                    arr.push({min:total,max:total+curDivHight,index:i})
+                    //设置最小值
+                    total+=curDivHight
+                }
+                // console.log(arr)
+                return arr
+            },
+            goodsList(){
+                return this.$store.state.goodsList
+            },
+            
         }
     }
 </script>
@@ -138,7 +171,7 @@ import BScroll from 'better-scroll'
                                 color: #93989c
                             }
                         }
-                        p:nth-child(4){
+                        .price{
                             color: #ff6600;
                             font-size: 14px;
                         }

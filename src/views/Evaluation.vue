@@ -1,41 +1,43 @@
 <template>
     <div class="evaluation">
-        <!-- 头部 -->
-        <div class="evaluationTop">
-            <div class="leftDiv">
-                <p><span>{{data1.score}}</span></p>
-                <h3>综合评分</h3>
-                <p>高于周边商家{{data1.rankRate}}</p>
+        <div class="content">
+            <!-- 头部 -->
+            <div class="evaluationTop">
+                <div class="leftDiv">
+                    <p><span>{{data1.score}}</span></p>
+                    <h3>综合评分</h3>
+                    <p>高于周边商家{{data1.rankRate}}</p>
+                </div>
+                <div class="rightDiv">
+                    <div>服务态度<Rate allow-half v-model="data1.serviceScore" /><span>{{data1.serviceScore}}</span></div>
+                    <div>食物评分<Rate allow-half v-model="data1.foodScore" /><span>{{data1.foodScore}}</span></div> 
+                    <div>送达时间<span>{{data1.deliveryTime}}分钟</span></div>              
+                </div>
             </div>
-            <div class="rightDiv">
-                <div>服务态度<Rate allow-half v-model="data1.serviceScore" /><span>{{data1.serviceScore}}</span></div>
-                <div>食物评分<Rate allow-half v-model="data1.foodScore" /><span>{{data1.foodScore}}</span></div> 
-                <div>送达时间<span>{{data1.deliveryTime}}分钟</span></div>              
+            <div class="bottomDiv"></div>
+            <!-- 分类按钮 -->
+            <div class="species">
+                <Button type="primary">全部&emsp;{{data2.length}}</Button>
+                <Button type="info">满意</Button>
+                <Button type="info">不满意</Button>
             </div>
-        </div>
-        <div class="bottomDiv"></div>
-        <!-- 分类按钮 -->
-        <div class="species">
-            <Button type="primary">全部&emsp;{{data2.length}}</Button>
-            <Button type="info">满意</Button>
-            <Button type="info">不满意</Button>
-        </div>
-        <!-- 选择 -->
-        <div class="choose"><Icon type="md-checkmark-circle" />只看有内容的评价</div>
+            <!-- 选择 -->
+            <div class="choose"><Icon type="md-checkmark-circle" />只看有内容的评价</div>
 
-        <!-- 评价区域 -->
-        <div class="comments" v-for="item in data2" :key="item.id">
-            <div class="leftImg">
-                <img :src="item.avatar" alt="" width="40px" height="40px">
-            </div>
-            <div class="rightInfo">
-                <h4>{{item.username}}<span>{{item.rateTime | formatDate}}</span></h4>
-                <p><Rate allow-half v-model="item.score" /><span v-show="item.deliveryTime!=''">{{item.deliveryTime}}分钟送达</span></p>
-                <h3>{{item.text}}</h3>
-                <div class="recommend">
-                    <Icon type="md-thumbs-up" v-show="item.rateType==0" :class="{rateType0:item.rateType==0}"/>
-                    <Icon type="md-thumbs-down" v-show="item.rateType==1" :class="{rateType1:item.rateType==1}"/>
-                    <span v-for="(v,i) in item.recommend" :key="i">{{v}}</span>
+            <!-- 评价区域 -->
+            <div class="comments" v-for="item in data2" :key="item.id">
+                <div class="leftImg">
+                    <img :src="item.avatar" alt="" width="40px" height="40px">
+                </div>
+                <div class="rightInfo">
+                    <h4>{{item.username}}<span>{{item.rateTime | formatDate}}</span></h4>
+                    <p><Rate allow-half v-model="item.score" /><span v-show="item.deliveryTime!=''">{{item.deliveryTime}}分钟送达</span></p>
+                    <h3>{{item.text}}</h3>
+                    <div class="recommend">
+                        <Icon type="md-thumbs-up" v-show="item.rateType==0" :class="{rateType0:item.rateType==0}"/>
+                        <Icon type="md-thumbs-down" v-show="item.rateType==1" :class="{rateType1:item.rateType==1}"/>
+                        <span v-for="(v,i) in item.recommend" :key="i">{{v}}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -44,6 +46,7 @@
 
 <script>
     import { evalutionInfo,merchantsInfo } from '../api/apis.js'
+    import BScroll from 'better-scroll'
     
     export default {
         data(){
@@ -66,6 +69,10 @@
                 // console.log(this.data)
             })
         },
+        mounted(){
+            new BScroll(document.querySelector(".evaluation"))
+        },
+        //转换时间戳
         filters: {
             formatDate: function (value) {
                 let date = new Date(value);
